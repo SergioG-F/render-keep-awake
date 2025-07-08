@@ -1,14 +1,13 @@
 name: Keep Render Backend Awake
 
 # 🚀 PROGRAMACIÓN:
-# Ejecuta el workflow cada 5 minutos durante JULIO 7, AGOSTO (8) y SEPTIEMBRE (9),
-# y hace un último ping el 30 de septiembre a las 23:59 (UTC)
+# Ejecuta el workflow cada 5 minutos durante JULIO (7), AGOSTO (8) y SEPTIEMBRE (9),
+# y hace un último ping el 30 de septiembre a las 23:59 UTC
 on:
   schedule:
-    - cron: '*/5 * * 7-9 *'      # ⏱️ Cada 5 minutos en Julio, agosto y septiembre
-    - cron: '59 23 30 9 *'       # 🛌 Último ping el 30 de septiembre
-
-  workflow_dispatch:             # ▶️ Permite ejecución manual
+    - cron: '*/5 * * 7-9 *'      # ⏱️ Cada 5 minutos en julio, agosto y septiembre
+    - cron: '59 23 30 9 *'       # 🛌 Último ping el 30/09 a las 23:59 UTC
+  workflow_dispatch:             # ▶️ Permite ejecución manual desde GitHub Actions
 
 jobs:
   ping-render:
@@ -27,28 +26,48 @@ jobs:
 
   despedida:
     name: 🛌 Último ping del ciclo (despedida simbólica)
-    if: github.event.schedule == '59 23 30 9 *'
     runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
     steps:
-      - name: ✅ Último ping enviado. Tu backend puede descansar 😴
-        run: echo "🛑 Fin del ciclo: backend puede dormir a partir de ahora."
+      - name: ✅ Mensaje simbólico de cierre
+        run: |
+          HOY=$(date -u '+%m-%d %H:%M')
+          if [ "$HOY" = "09-30 23:59" ]; then
+            echo "🛑 Fin del ciclo: backend puede dormir a partir de ahora."
+          else
+            echo "🕓 Aún estamos dentro del rango de ejecución."
+          fi
 
   auto-disable:
     name: 🚫 Autodesactivar GitHub Action (borrar este archivo)
-    if: github.event.schedule == '59 23 30 9 *'
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write    # ✅ Necesario para modificar el repositorio
     steps:
+      - name: 🕵️ Verificar si es 30/09 a las 23:59
+        id: verificar
+        run: |
+          HOY=$(date -u '+%m-%d %H:%M')
+          echo "FECHA_ACTUAL=$HOY" >> $GITHUB_ENV
+          if [ "$HOY" = "09-30 23:59" ]; then
+            echo "desactivar=true" >> $GITHUB_OUTPUT
+          else
+            echo "desactivar=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 🔧 Clonar el repositorio
+        if: steps.verificar.outputs.desactivar == 'true'
         uses: actions/checkout@v4
 
       - name: 🗑️ Eliminar archivo keep-alive.yml
+        if: steps.verificar.outputs.desactivar == 'true'
         run: |
-          echo "Borrando este workflow para detener futuros pings..."
+          echo "🗂️ Eliminando archivo keep-alive.yml para detener futuros pings..."
           rm -f .github/workflows/keep-alive.yml
 
       - name: 📤 Commit y push del borrado
+        if: steps.verificar.outputs.desactivar == 'true'
         run: |
           git config --global user.name "uptime-bot"
           git config --global user.email "uptime@githubactions.com"
