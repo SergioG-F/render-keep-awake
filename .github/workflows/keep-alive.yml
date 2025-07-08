@@ -18,7 +18,7 @@ jobs:
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S")
           echo "📡 Ping enviado a las $TIMESTAMP UTC"
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://reception-back.onrender.com/)
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://reception-back.onrender.com/ping)
           echo "📥 Código de respuesta: $RESPONSE"
           if [ "$RESPONSE" != "200" ]; then
             echo "⚠️ Backend no respondió correctamente o está dormido"
