@@ -72,5 +72,5 @@ jobs:
           git config --global user.name "uptime-bot"
           git config --global user.email "uptime@githubactions.com"
           git add .github/workflows/keep-alive.yml || echo "Ya estaba borrado"
-          git commit -m "🛑 Autoapagado: Fin del ciclo de pings a Render (sept 30)"
+          git commit --allow-empty -m "🛑 Autoapagado: Fin del ciclo de pings a Render (sept 30)"
           git push
