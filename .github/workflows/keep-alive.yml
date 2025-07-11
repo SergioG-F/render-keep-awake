@@ -5,7 +5,7 @@ name: Keep Render Backend Awake
 # y hace un último ping el 30 de septiembre a las 23:59 UTC
 on:
   schedule:
-    - cron: '*/5 * * 7-9 *'      # ⏱️ Cada 5 minutos en julio, agosto y septiembre
+    - cron: '*/10 * * 7-9 *'      # ⏱️ Cada 10 minutos en julio, agosto y septiembre
     - cron: '59 23 30 9 *'       # 🛌 Último ping el 30/09 a las 23:59 UTC
   workflow_dispatch:             # ▶️ Permite ejecución manual desde GitHub Actions
 
@@ -18,11 +18,22 @@ jobs:
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S")
           echo "📡 Ping enviado a las $TIMESTAMP UTC"
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://reception-back.onrender.com/ping)
-          echo "📥 Código de respuesta: $RESPONSE"
-          if [ "$RESPONSE" != "200" ]; then
-            echo "⚠️ Backend no respondió correctamente o está dormido"
-          fi
+          
+          for i in {1..5}; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://reception-back.onrender.com/ping)
+            echo "🔁 Intento $i - Código de respuesta: $RESPONSE"
+
+            if [ "$RESPONSE" == "200" ]; then
+              echo "✅ Ping exitoso"
+              break
+            elif [ "$RESPONSE" == "429" ]; then
+              echo "⏳ Esperando 10 segundos para reintentar (429 Too Many Requests)..."
+              sleep 10
+            else
+              echo "⚠️ Fallo con código $RESPONSE. Esperando 5 segundos..."
+              sleep 5
+            fi
+          done
 
   despedida:
     name: 🛌 Último ping del ciclo (despedida simbólica)
@@ -43,7 +54,7 @@ jobs:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # ✅ Necesario para modificar el repositorio
+      contents: write
     steps:
       - name: 🕵️ Verificar si es 30/09 a las 23:59
         id: verificar
